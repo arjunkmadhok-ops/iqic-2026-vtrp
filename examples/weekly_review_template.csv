@@ -1,0 +1,4 @@
+week,signal_date,account_equity,peak_since_nov2,drawdown,breaker_on,predicted_sleeve_vol,k,largest_weight_gap,traded,orders_placed,orders_filled,unfilled_or_exceptions,max_actual_vs_target_gap_after_fills,notes
+1,2026-10-30,,,,,,,,yes,,,,,
+2,2026-11-06,,,,,,,,,,,,,
+3,2026-11-13,,,,,,,,,,,,,

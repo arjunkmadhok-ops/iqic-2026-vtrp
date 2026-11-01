@@ -1,0 +1,18 @@
+# Data (rebuild with build_prices.py; Yahoo Finance data is not redistributed)
+prices.parquet
+prices.csv
+prices_latest.csv
+closes.csv
+contests.csv
+
+# Personal / account files: never publish
+account.json
+quotes.csv
+orders_*.csv
+signal_*.json
+CLAUDE.md
+*.pdf
+
+__pycache__/
+.DS_Store
+.venv/

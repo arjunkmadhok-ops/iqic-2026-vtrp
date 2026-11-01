@@ -1,0 +1,9 @@
+{
+  "equity": 100000.0,
+  "cash": 100000.0,
+  "holdings": {},
+  "max_position_weight": 0.25,
+  "commission_per_trade": 0.0,
+  "nav_history": [],
+  "first_build": true
+}
