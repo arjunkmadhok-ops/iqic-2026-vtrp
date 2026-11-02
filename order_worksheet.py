@@ -12,12 +12,14 @@ Usage (after the Friday close):
 Inputs
   prices.csv   adjusted closes through the signal date (build_prices.py)
   account.json read from StockTrak (My Portfolio -> Portfolio Summary / Open Positions):
-                 equity               current account value
+                 equity               live account value on Monday (sizes the orders only)
+                 starting_equity      account value when trading began (e.g. 100000)
                  cash                 current cash
                  holdings             {"IEF": 120, ...} shares held now
                  max_position_weight  class position limit (our cap is min(25%, this))
                  commission_per_trade fixed fee per order, if any
-                 nav_history          account closing values since Nov 2 (for the breaker)
+                 nav_history          daily closing account values since Nov 2, ending with the
+                                      signal Friday's close (the breaker uses only these)
                  first_build          true for the Nov 2 build (ignores the 2-point band)
   quotes.csv   ticker,bid,ask  (Monday quotes, after 10:00 ET)
 
@@ -38,6 +40,22 @@ import vtrp
 
 def mid(q):
     return (q[0] + q[1]) / 2
+
+
+def friday_close_drawdown(nav_history, starting_equity, first=False):
+    """Rule 4 drawdown, measured at the signal Friday's close.
+
+    nav_history: the account's daily CLOSING values since trading began on Nov 2, oldest
+    first, ending with the signal Friday's close. The peak includes the starting equity.
+    Monday's live account value must not be used here.
+    """
+    navs = [float(x) for x in nav_history]
+    if first:
+        return 0.0
+    if not navs:
+        raise SystemExit("nav_history is empty: add the account's daily closing values since Nov 2, "
+                         "ending with the signal Friday's close.")
+    return navs[-1] / max([float(starting_equity)] + navs) - 1
 
 
 def plan_orders(w, holdings, cash, equity, quotes, fee=0.0, first=False, band=vtrp.PARAMS["band"]):
@@ -113,8 +131,10 @@ def main():
     w, info = vtrp.risk_parity_targets(px, len(px) - 1, cap=cap)
 
     # --- Rule 4: breaker on the account's peak since Nov 2 -------------------------------
-    navs = [float(x) for x in acct.get("nav_history", [])] + [equity]
-    dd = equity / max(navs) - 1
+    # Judged at the signal Friday's close (the declared rule), NOT on Monday's live equity,
+    # which is used only to size orders.
+    dd = friday_close_drawdown(acct.get("nav_history", []),
+                               float(acct.get("starting_equity", equity)), first)
     w = vtrp.apply_breaker(w, dd)
     breaker_on = dd < -vtrp.PARAMS["breaker_dd"]
     # The class position limit applies to SHY as well; anything above it stays as cash.
