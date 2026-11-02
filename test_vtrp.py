@@ -124,6 +124,23 @@ def test_shy_respects_class_position_limit():
     assert shy <= 0.25 * equity + 1e-6 and cash >= cash_w * equity - 1_000
 
 
+def test_breaker_uses_friday_close_not_monday_equity():
+    """Declared rule 4 is judged at the Friday close; Monday's live value must not change it."""
+    start = 100_000.0
+    fri = [100_500.0, 101_000.0, 99_000.0, 95_000.0, 91_000.0]       # Friday close 9.9% below peak
+    dd = ow.friday_close_drawdown(fri, start)
+    assert dd < -vtrp.PARAMS["breaker_dd"]                           # breaker ON from Friday close
+    assert abs(dd - (91_000 / 101_000 - 1)) < 1e-12
+    calm = [100_000.0, 99_500.0, 98_000.0]                           # Friday close 2.0% below start
+    assert ow.friday_close_drawdown(calm, start) > -vtrp.PARAMS["breaker_dd"]
+    assert ow.friday_close_drawdown([], start, first=True) == 0.0    # first build: no history yet
+    try:
+        ow.friday_close_drawdown([], start)                           # later weeks need history
+        raise AssertionError("empty nav_history accepted")
+    except SystemExit:
+        pass
+
+
 def test_risk_contributions_sum_to_one():
     loc = PX.index.get_loc(pd.Timestamp("2026-10-23"))
     w, info = vtrp.risk_parity_targets(PX, loc)

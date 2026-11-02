@@ -59,7 +59,7 @@ prices slightly.
 python test_vtrp.py        # or: pytest test_vtrp.py   (about 10 seconds)
 ```
 
-14 checks, all passing on the declared snapshot:
+15 checks, all passing on the declared snapshot:
 
 | Area | What is checked |
 |---|---|
@@ -67,7 +67,7 @@ python test_vtrp.py        # or: pytest test_vtrp.py   (about 10 seconds)
 | Declared rules | On 50+ dates since 2006: long-only, weights sum to 1, no ETF above 25%, predicted volatility ≤ 10%; a tighter class cap is respected |
 | Calculations | σₚ equals √(252 · wᵀΣ_daily w) computed independently; 63-day volatilities match; risk shares sum to 1 |
 | Data handling | An ETF with a missing price in its 63-day window, or without enough history (XLC before 2018), gets no weight |
-| Circuit breaker | Halves every risky weight below −8%, changes nothing above it |
+| Circuit breaker | Halves every risky weight below −8%, changes nothing above it; judged on the Friday close even if Monday rebounds |
 | Position limits | With the breaker on, SHY (~50%) is capped at a 25% class limit and the rest stays as cash; risky weights unchanged |
 | Orders | Never borrow (50 random accounts and caps); never buy above target; band blocks small rebalances; sells come before buys |
 | Reproducibility | Sharpe, beta, alpha and max drawdown match the declaration exactly for all three periods |
@@ -115,10 +115,15 @@ python order_worksheet.py --prices prices.csv --account account.json \
     --quotes quotes.csv --signal-date 2026-10-30
 ```
 
-- `account.json`: copy equity, cash and share holdings from StockTrak (My Portfolio → Portfolio
-  Summary and Open Positions). Set `max_position_weight` to the class position limit,
-  `commission_per_trade` to the class fee, `nav_history` to the account's closing values since
-  Nov 2, and `first_build` to `true` only for Nov 2. See `examples/account_example.json`.
+- `account.json`: copy cash and share holdings from StockTrak (My Portfolio → Portfolio Summary
+  and Open Positions). `equity` = Monday's live account value (used only to size orders);
+  `starting_equity` = the value trading began with; `nav_history` = the account's daily closing
+  values since Nov 2, ending with the signal Friday's close (the circuit breaker is judged on these,
+  as declared, never on Monday's live value). Set `max_position_weight` to the class position
+  limit, `commission_per_trade` to the class fee, and `first_build` to `true` only for Nov 2.
+  See `examples/account_example.json`.
+- Trade from `prices_latest.csv` (add new closes with `add_closes.py`); keep `prices.csv` as the
+  declared snapshot so the reproduction test still runs.
 - `quotes.csv`: Monday's bid and ask for each ETF, after 10:00 ET. See `examples/quotes_example.csv`
   (those prices are Oct 28 closes ± $0.01, for illustration only).
 - Output: `orders_<date>.csv` lists sells first, then buys, then SHY. Enter each as a limit order at
